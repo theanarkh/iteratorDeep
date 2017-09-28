@@ -1,0 +1,63 @@
+    var _rawTostring = Object.prototype.toString;
+    // 使用最原始的而不是直接调用对象的hasOwnerProperty，防止对象该属性被重写
+    var _hasOwnerProperty = Object.prototype.hasOwnProperty;
+
+    function type(target) {
+        return _rawTostring.call(target).replace(/\[object (.+)?\]/,'$1');
+    }
+
+    function hasOwnerProperty(obj, key) {
+        return _hasOwnerProperty.call(obj, key);
+    }
+    // 深度迭代
+    /*   options => {
+     *       fn, context, addition
+     *   } 
+     */
+    function iterator(data, options) {
+        options = options || {};
+        if (type(data) === 'Object') {
+            for (var key in data) {
+                if (hasOwnerProperty(data, key)) {
+                    var valType = type(data[key]);
+                    if (valType === 'Object' || valType === 'Array') {
+                        iterator(data[key], {
+                            fn: options.fn,
+                            context: options.context, 
+                            addition: options.addition,
+                            key: key,
+                            type: valType
+                        });
+                    } else {
+                        options.fn && options.fn.call(options.context, data[key], {
+                            key: key, 
+                            rawKey: options.key,
+                            addition: options.addition,
+                            rawType: options.type
+                        });
+                    }
+                }
+            }
+        } else if(type(data) === 'Array'){
+            for (var index = 0; index < data.length; index++) {
+                var valType = type(data[index]);
+                if (valType === 'Object' || valType === 'Array') {
+                    iterator(data[index], {
+                        fn: options.fn, 
+                        context: options.context,
+                        addition: options.addition,
+                        type: valType
+                    });
+                } else {
+                    options.fn && options.fn.call(options.context, data[index], {
+                        key: index, 
+                        rawKey: options.key,
+                        addition: options.addition,
+                        rawType: options.type
+                    });
+                }
+            }
+        }
+    }
+
+    module.exports = iterator;
